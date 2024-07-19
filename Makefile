@@ -1,4 +1,4 @@
-IMG = docker.io/i-device-plugin:latest
+IMG = docker.io/lixd96/i-device-plugin:latest
 
 .PHONY: build
 build:

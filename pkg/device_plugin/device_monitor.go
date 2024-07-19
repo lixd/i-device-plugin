@@ -1,14 +1,15 @@
 package device_plugin
 
 import (
-	"crypto/md5"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"io/fs"
 	"k8s.io/klog/v2"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
+	"path"
 	"path/filepath"
+	"strings"
 )
 
 type DeviceMonitor struct {
@@ -33,21 +34,14 @@ func (d *DeviceMonitor) List() error {
 			return nil
 		}
 
-		sum := md5.Sum([]byte(info.Name()))
 		d.devices[info.Name()] = &pluginapi.Device{
-			ID:     string(sum[:]),
+			ID:     info.Name(),
 			Health: pluginapi.Healthy,
 		}
 		return nil
 	})
 
 	return errors.WithMessagef(err, "walk [%s] failed", d.path)
-
-	//if err != nil {
-	//	return nil, errors.WithMessagef(err, "walk [%s] failed", d.path)
-	//}
-	//
-	//return d.ToDeviceList(), nil
 }
 
 // Watch device change
@@ -76,21 +70,23 @@ func (d *DeviceMonitor) Watch() error {
 				klog.Infof("fsnotify device event: %s %s", event.Name, event.Op.String())
 
 				if event.Op == fsnotify.Create {
-					d.devices[event.Name] = &pluginapi.Device{
-						ID:     event.Name,
+					dev := path.Base(event.Name)
+					d.devices[dev] = &pluginapi.Device{
+						ID:     dev,
 						Health: pluginapi.Healthy,
 					}
 					d.notify <- struct{}{}
-					klog.Infof("device:%s add", event.Name)
+					klog.Infof("find new device [%s]", dev)
 				} else if event.Op&fsnotify.Remove == fsnotify.Remove {
-					delete(d.devices, event.Name)
+					dev := path.Base(event.Name)
+					delete(d.devices, dev)
 					d.notify <- struct{}{}
-					klog.Infof("device:%s removed", event.Name)
+					klog.Infof("device [%s] removed", dev)
 				}
 
 			case err, ok := <-w.Errors:
 				if !ok {
-					return
+					continue
 				}
 				klog.Errorf("fsnotify watch device failed:%v", err)
 			}
@@ -112,4 +108,12 @@ func (d *DeviceMonitor) Devices() []*pluginapi.Device {
 		devices = append(devices, device)
 	}
 	return devices
+}
+
+func String(devs []*pluginapi.Device) string {
+	ids := make([]string, 0, len(devs))
+	for _, device := range devs {
+		ids = append(ids, device.ID)
+	}
+	return strings.Join(ids, ",")
 }

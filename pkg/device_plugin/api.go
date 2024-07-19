@@ -19,7 +19,7 @@ func (c *GopherDevicePlugin) GetDevicePluginOptions(_ context.Context, _ *plugin
 // returns the new list
 func (c *GopherDevicePlugin) ListAndWatch(_ *pluginapi.Empty, srv pluginapi.DevicePlugin_ListAndWatchServer) error {
 	devs := c.dm.Devices()
-	klog.Infoln("find device %v", len(devs))
+	klog.Infof("find devices [%s]", String(devs))
 
 	err := srv.Send(&pluginapi.ListAndWatchResponse{Devices: devs})
 	if err != nil {
@@ -29,7 +29,7 @@ func (c *GopherDevicePlugin) ListAndWatch(_ *pluginapi.Empty, srv pluginapi.Devi
 	klog.Infoln("waiting for device update")
 	for range c.dm.notify {
 		devs = c.dm.Devices()
-		klog.Infof("device update %v", len(devs))
+		klog.Infof("device update,new device list [%s]", String(devs))
 		_ = srv.Send(&pluginapi.ListAndWatchResponse{Devices: devs})
 	}
 	return nil

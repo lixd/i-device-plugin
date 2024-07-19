@@ -19,13 +19,19 @@ func WatchKubelet(stop chan<- struct{}) error {
 		// Start listening for events.
 		for {
 			select {
-			case event := <-watcher.Events:
+			case event, ok := <-watcher.Events:
+				if !ok {
+					continue
+				}
 				klog.Infof("fsnotify events: %s %v", event.Name, event.Op.String())
 				if event.Name == pluginapi.KubeletSocket && event.Op == fsnotify.Create {
 					klog.Warning("inotify: kubelet.sock created, restarting.")
 					stop <- struct{}{}
 				}
-			case err = <-watcher.Errors:
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					continue
+				}
 				klog.Errorf("fsnotify failed restarting,detail:%v", err)
 			}
 		}
