@@ -6,6 +6,17 @@ k8s device-plugin demo.
 * 将设备分配给 Pod 后，会在 Pod 中新增环境变量`Gopher=$deviceId`
 
 
+不熟悉 k8s device plugin 的同学可以看下这篇原理分析文章 --> [Kubernetes教程(二一)---自定义资源支持：K8s Device Plugin 从原理到实现](https://www.lixueduan.com/posts/kubernetes/21-device-plugin/)
+
+### 微信公众号：探索云原生
+
+一个云原生打工人的探索之路，专注云原生，Go，坚持分享最佳实践、经验干货。
+
+扫描下面二维码，关注我即时获取更新~
+
+![](https://img.lixueduan.com/about/wechat/qrcode_search.png)
+
+
 ## 构建镜像
 ```bash
 make build-image
