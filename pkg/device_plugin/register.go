@@ -21,6 +21,8 @@ func (c *GopherDevicePlugin) Register() error {
 		Version:      pluginapi.Version,
 		Endpoint:     path.Base(common.DeviceSocket),
 		ResourceName: common.ResourceName,
+		// 如果需要使用 GetPreferredAllocation，需要指定开启
+		// Options:      &pluginapi.DevicePluginOptions{GetPreferredAllocationAvailable: true},
 	}
 
 	_, err = client.Register(context.Background(), reqt)
