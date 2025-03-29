@@ -11,7 +11,11 @@ import (
 // GetDevicePluginOptions returns options to be communicated with Device
 // Manager
 func (c *GopherDevicePlugin) GetDevicePluginOptions(_ context.Context, _ *pluginapi.Empty) (*pluginapi.DevicePluginOptions, error) {
-	return &pluginapi.DevicePluginOptions{PreStartRequired: true}, nil
+	return &pluginapi.DevicePluginOptions{
+		PreStartRequired: true,
+		// 如果需要使用 GetPreferredAllocation，需要指定开启
+		GetPreferredAllocationAvailable: true,
+	}, nil
 }
 
 // ListAndWatch returns a stream of List of Devices
@@ -41,6 +45,7 @@ func (c *GopherDevicePlugin) ListAndWatch(_ *pluginapi.Empty, srv pluginapi.Devi
 // devicemanager. It is only designed to help the devicemanager make a more
 // informed allocation decision when possible.
 func (c *GopherDevicePlugin) GetPreferredAllocation(_ context.Context, _ *pluginapi.PreferredAllocationRequest) (*pluginapi.PreferredAllocationResponse, error) {
+	klog.Infoln("[GetPreferredAllocation] running")
 	return &pluginapi.PreferredAllocationResponse{}, nil
 }
 
