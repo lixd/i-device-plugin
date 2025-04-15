@@ -58,7 +58,7 @@ func (c *GopherDevicePlugin) Run() error {
 	go c.server.Serve(sock)
 
 	// Wait for server to start by launching a blocking connection
-	conn, err := connect(common.DeviceSocket, 5*time.Second)
+	conn, err := connect(socket, 5*time.Second)
 	if err != nil {
 		return err
 	}

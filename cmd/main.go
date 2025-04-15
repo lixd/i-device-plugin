@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/fsnotify/fsnotify"
 	"github.com/lixd/i-device-plugin/pkg/device_plugin"
 	"github.com/lixd/i-device-plugin/pkg/utils"
 	"k8s.io/klog/v2"
@@ -18,8 +19,13 @@ func main() {
 
 	// watch kubelet.sock,when kubelet restart,exit device plugin,then will restart by DaemonSet
 	stop := make(chan struct{})
-	err := utils.WatchKubelet(stop)
+	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
+		klog.Fatalf("Unable to create fsnotify watcher: %v", err)
+	}
+	defer watcher.Close()
+
+	if err = utils.WatchKubelet(watcher, stop); err != nil {
 		klog.Fatalf("start to kubelet failed: %v", err)
 	}
 

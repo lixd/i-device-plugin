@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
@@ -8,12 +11,21 @@ import (
 )
 
 // WatchKubelet restart device plugin when kubelet restarted
-func WatchKubelet(stop chan<- struct{}) error {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return errors.WithMessage(err, "Unable to create fsnotify watcher")
+func WatchKubelet(watcher *fsnotify.Watcher, stop chan<- struct{}) error {
+	// Read path from environment variable first (for testing)
+	kubeletSocket := os.Getenv("KUBELET_SOCKET")
+	if kubeletSocket == "" {
+		kubeletSocket = pluginapi.KubeletSocket
 	}
-	defer watcher.Close()
+
+	// Get directory path
+	devicePluginPath := filepath.Dir(kubeletSocket)
+
+	// watch dir /var/lib/kubelet/device-plugins/
+	err := watcher.Add(devicePluginPath)
+	if err != nil {
+		return errors.WithMessagef(err, "Unable to add path %s to watcher", kubeletSocket)
+	}
 
 	go func() {
 		// Start listening for events.
@@ -21,26 +33,21 @@ func WatchKubelet(stop chan<- struct{}) error {
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok {
-					continue
+					return
 				}
 				klog.Infof("fsnotify events: %s %v", event.Name, event.Op.String())
-				if event.Name == pluginapi.KubeletSocket && event.Op == fsnotify.Create {
+				if event.Name == kubeletSocket && event.Op == fsnotify.Create {
 					klog.Warning("inotify: kubelet.sock created, restarting.")
 					stop <- struct{}{}
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
-					continue
+					return
 				}
 				klog.Errorf("fsnotify failed restarting,detail:%v", err)
 			}
 		}
 	}()
 
-	// watch kubelet.sock
-	err = watcher.Add(pluginapi.KubeletSocket)
-	if err != nil {
-		return errors.WithMessagef(err, "Unable to add path %s to watcher", pluginapi.KubeletSocket)
-	}
 	return nil
 }
